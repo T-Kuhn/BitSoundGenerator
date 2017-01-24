@@ -114,8 +114,16 @@ class BitSoundGenerator:
     # - - - - - signalMixing - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def signalMixing(self, s1, s2, dur):
-        self.pi.set_PWM_frequency(23, s1)
-        self.pi.set_PWM_frequency(24, s2)
+        if s1 == 0:
+            self.pi.set_PWM_dutycycle(23, 0) 
+        else:
+            self.pi.set_PWM_dutycycle(23, 50) 
+            self.pi.set_PWM_frequency(23, s1)
+        if s2 == 0:
+            self.pi.set_PWM_dutycycle(24, 0) 
+        else:
+            self.pi.set_PWM_dutycycle(24, 50) 
+            self.pi.set_PWM_frequency(24, s2)
         time.sleep(dur)
 
     # - - - - - - - - - - - - - - - - - -
@@ -143,6 +151,29 @@ class BitSoundGenerator:
                 self.pi.set_PWM_dutycycle(24, 50) 
                 self.signalMixing(freq1, freq2, random.randint(1,2)/10.0)
 
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - - hardwarePWMtest - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def hardwarePWMtest(self):
+        self.pi.hardware_PWM(19, 500, 500000) 
+        time.sleep(1.5)
+        self.pi.hardware_PWM(19, 1000, 500000) 
+        time.sleep(1.5)
+
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - - - bitBangTest - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def bitBangTest(self):
+        self.signalMixing(500,0,1.0)
+        self.signalMixing(1000,0,1.0)
+        self.resetPWM()
+        self.pi.write(24,0)
+        while True:
+            self.pi.write(23,0)
+            time.sleep(0.0002)
+            self.pi.write(23,1)
+            time.sleep(0.0002)
+
 
     # - - - - - - - - - - - - - - - - - -
     # - - - - - - update  - - - - - - - - 
@@ -151,20 +182,17 @@ class BitSoundGenerator:
         #self.cycleTime = 5000
         #self.startTime = self.getTimeInMilliSecs()
         #while self.startTime + self.cycleTime > self.getTimeInMilliSecs():
-
-
+        
+        self.resetPWM()
+        #self.bitBangTest()
+        self.hardwarePWMtest() 
+        
         while True:
             self.updatePWM()
-            # sleep for 500ms
             time.sleep(0.02)
 
         self.testing1()
-
         self.randomizedSound()
-        
-        self.testing1()
-        self.testing3()
-
         self.resetPWM()
 
     # - - - - - - - - - - - - - - - - - -
@@ -177,8 +205,6 @@ class BitSoundGenerator:
     # - - - - - - reset PWM - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def resetPWM(self):
-        self.pi.wave_tx_stop()
-        self.pi.wave_clear() # clear any existing waveforms
         for pin in self.pinList:
             self.pi.set_PWM_frequency(pin, 200)
             self.pi.set_PWM_range(pin, 1000)
@@ -186,9 +212,6 @@ class BitSoundGenerator:
 
 
 bitSoundGen = BitSoundGenerator()
-#bitSoundGen.monoTone()
-#bitSoundGen.sendSerialWave()
-#bitSoundGen.sendGenericWave()
 bitSoundGen.update()
 
 
@@ -199,12 +222,15 @@ bitSoundGen.update()
 # [LED] White -> GPIO 24
 # [SPEAKER] Gray -> GPIO 23
 
-# so if we bitbanged that thing once every 1ms...
-# ... we would get a 1000Hz tone!
+# the only way to write out to the serial is to either use the 
+# wave function or (maybe) one of the hardware serials.
 
-# By bitbanging the thing out on the same
-# sample frequency we can get back the exact same 1 bit sound sample
-# we recorded before using that mic.
+# What about that hardware PWM.
+# That sounds like a rather interesting thing, doesn't it.
+# With it we can output any frequency we want!
+# this is huge. One question here is what should we use as souce.
+# but enough talk, let's just try hardware PWM!
+
 
 
 
