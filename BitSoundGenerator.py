@@ -178,7 +178,6 @@ class BitSoundGenerator:
     # - - - - - - waveTest  - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def waveTest(self):
-        #self.pi.wave_tx_stop() # stop waveform 
         self.pi.wave_clear() # clear any existing waveforms
         G1 = 23
         NONE = 0
@@ -197,7 +196,33 @@ class BitSoundGenerator:
         time.sleep(2)
         self.pi.wave_tx_stop() # stop waveform
 
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - chainWaveTest - - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def chainWaveTest(self):
+        self.pi.wave_clear() # clear any existing waveforms
+        G1 = 23
+        NONE = 0
+        nmbrOfWaves = 5
+        wave=[]
+        waveId = [0]*nmbrOfWaves
+       
+        for nmbr in range(nmbrOfWaves):
+            for i in range(200):
+                #                         ON     OFF   DELAY (usec)
+                wave.append(pigpio.pulse(1<<G1, NONE, nmbr*300 + i))
+                wave.append(pigpio.pulse(NONE, 1<<G1, nmbr*300 + i))
+            self.pi.wave_add_generic(wave)
+            waveId[nmbr] = self.pi.wave_create()
         
+        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 10, 0])
+
+        while self.pi.wave_tx_busy():
+            time.sleep(0.1);
+
+        for i in range(nmbrOfWaves):
+            self.pi.wave_delete(waveId[i])
+
 
     # - - - - - - - - - - - - - - - - - -
     # - - - - - - update  - - - - - - - - 
@@ -211,6 +236,8 @@ class BitSoundGenerator:
         #self.bitBangTest()
         #self.hardwarePWMtest() 
        
+        self.chainWaveTest()
+
         self.waveTest()
 
 
