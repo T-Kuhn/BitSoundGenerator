@@ -174,6 +174,30 @@ class BitSoundGenerator:
             self.pi.write(23,1)
             time.sleep(0.0002)
 
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - - - waveTest  - - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def waveTest(self):
+        #self.pi.wave_tx_stop() # stop waveform 
+        self.pi.wave_clear() # clear any existing waveforms
+        G1 = 23
+        NONE = 0
+        wave=[]
+        
+        for i in range(1000):
+            #                         ON     OFF   DELAY (usec)
+            wave.append(pigpio.pulse(1<<G1, NONE, 200 + i))
+            wave.append(pigpio.pulse(NONE, 1<<G1, 200 + i))
+        
+        self.pi.wave_add_generic(wave)
+        waveId = self.pi.wave_create()
+        self.pi.wave_send_once(waveId)
+        
+
+        time.sleep(2)
+        self.pi.wave_tx_stop() # stop waveform
+
+        
 
     # - - - - - - - - - - - - - - - - - -
     # - - - - - - update  - - - - - - - - 
@@ -185,15 +209,18 @@ class BitSoundGenerator:
         
         self.resetPWM()
         #self.bitBangTest()
-        self.hardwarePWMtest() 
-        
-        while True:
-            self.updatePWM()
-            time.sleep(0.02)
+        #self.hardwarePWMtest() 
+       
+        self.waveTest()
 
-        self.testing1()
-        self.randomizedSound()
-        self.resetPWM()
+
+        #while True:
+        #    self.updatePWM()
+        #    time.sleep(0.02)
+
+        #self.testing1()
+        #self.randomizedSound()
+        #self.resetPWM()
 
     # - - - - - - - - - - - - - - - - - -
     # - - - get time in Millisecs - - - - 
@@ -206,8 +233,8 @@ class BitSoundGenerator:
     # - - - - - - - - - - - - - - - - - -
     def resetPWM(self):
         for pin in self.pinList:
-            self.pi.set_PWM_frequency(pin, 200)
-            self.pi.set_PWM_range(pin, 1000)
+            self.pi.set_PWM_frequency(pin, 1000)
+            self.pi.set_PWM_range(pin, 200)
             self.pi.set_PWM_dutycycle(pin, 0) 
 
 
