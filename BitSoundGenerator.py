@@ -13,11 +13,11 @@ class BitSoundGenerator:
     def __init__(self):
         self.pi = pigpio.pi('localhost', 8888)
         self.pinList = [23, 24]
-        self.freqList = [10,20,40,50,80,100,160,200,250,320,400,500,800,1000,1600,2000,4000,80000]
+        self.freqList = [10,20,40,50,80,100,160,200,250,320,400,500,800,1000,1600,2000,4000,8000]
         self.theta = 0.0
         for pin in self.pinList:
             self.pi.set_mode(pin, pigpio.OUTPUT) 
-        self.setupPWM()
+        #self.setupPWM()
     # - - - - - - - - - - - - - - - - - -
     # - - - - - - Setup PWM - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
@@ -54,7 +54,7 @@ class BitSoundGenerator:
     # - - - - - update PWM  - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def updatePWM(self):
-        fakeList = [5];
+        self.pi.set_PWM_dutycycle(23, 50) 
         for entry in self.freqList:
             self.pi.set_PWM_frequency(24, entry)
             for ent in self.freqList:
@@ -192,9 +192,37 @@ class BitSoundGenerator:
         waveId = self.pi.wave_create()
         self.pi.wave_send_once(waveId)
         
-
         time.sleep(2)
         self.pi.wave_tx_stop() # stop waveform
+
+    # - - - - - - - - - - - - - - - - - -
+    # - - -  randomChainWaveTest  - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def randomChainWaveTest(self):
+        self.pi.wave_clear() # clear any existing waveforms
+        G1 = 23
+        NONE = 0
+        nmbrOfWaves = 5
+        wave=[]
+        waveId = [0]*nmbrOfWaves
+        
+       
+        for nmbr in range(nmbrOfWaves):
+            signVal = random.randint(-2,2)
+            for i in range(random.randint(1, 200)):
+                #                         ON     OFF   DELAY (usec)
+                wave.append(pigpio.pulse(1<<G1, NONE,  500 + i*signVal))
+                wave.append(pigpio.pulse(NONE, 1<<G1,  500 + i*signVal))
+            self.pi.wave_add_generic(wave)
+            waveId[nmbr] = self.pi.wave_create()
+        
+        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 4, 0])
+
+        while self.pi.wave_tx_busy():
+            time.sleep(0.1);
+
+        for i in range(nmbrOfWaves):
+            self.pi.wave_delete(waveId[i])
 
     # - - - - - - - - - - - - - - - - - -
     # - - - - chainWaveTest - - - - - - - 
@@ -215,7 +243,7 @@ class BitSoundGenerator:
             self.pi.wave_add_generic(wave)
             waveId[nmbr] = self.pi.wave_create()
         
-        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 10, 0])
+        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 4, 0])
 
         while self.pi.wave_tx_busy():
             time.sleep(0.1);
@@ -223,31 +251,102 @@ class BitSoundGenerator:
         for i in range(nmbrOfWaves):
             self.pi.wave_delete(waveId[i])
 
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - frequencyWave - - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def frequencyWave(self, freq, sleepTime):
+        G1 = 23
+        NONE = 0
+        wave = []
+       
+        #                         ON     OFF   DELAY (usec)
+        wave.append(pigpio.pulse(1<<G1, NONE, round(1000000/freq)))
+        wave.append(pigpio.pulse(NONE, 1<<G1, round(1000000/freq)))
+        self.pi.wave_add_generic(wave)
+        waveId = self.pi.wave_create()
+        
+        self.pi.wave_send_repeat(waveId)
+
+        time.sleep(sleepTime)
+        self.pi.wave_clear() # clear any existing waveforms
+        self.pi.wave_tx_stop() # stop waveform
+
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - - - randomWave  - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def randomWave(self):
+        for _ in range(50):
+            self.frequencyWave(random.randint(200,8000), random.randint(1,2)/10.0)
+
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - - -  r2d2 - - - - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def r2d2(self):
+        note_A7 = 3520
+        note_G7 = 3135
+        note_E7 = 2637
+        note_C7 = 2093
+        note_D7 = 2349
+        note_B7 = 3951
+        note_F7 = 2793
+        note_C8 = 4186
+
+        self.frequencyWave(note_A7,0.100)
+        self.frequencyWave(note_G7,0.100)
+        self.frequencyWave(note_E7,0.100)
+        self.frequencyWave(note_C7,0.100)
+        self.frequencyWave(note_D7,0.100)
+        self.frequencyWave(note_B7,0.100)
+        self.frequencyWave(note_F7,0.100)
+        self.frequencyWave(note_C8,0.100)
+
+        self.frequencyWave(note_A7,0.100)
+        self.frequencyWave(note_G7,0.100)
+        self.frequencyWave(note_E7,0.100)
+        self.frequencyWave(note_C7,0.100)
+        self.frequencyWave(note_D7,0.100)
+        self.frequencyWave(note_B7,0.100)
+        self.frequencyWave(note_F7,0.100)
+        self.frequencyWave(note_C8,0.100)
+
+    # - - - - - - - - - - - - - - - - - -
+    # - - - - waveChangeTest  - - - - - - 
+    # - - - - - - - - - - - - - - - - - -
+    def waveChangeTest(self):
+        self.frequencyWave(261,1.5)
 
     # - - - - - - - - - - - - - - - - - -
     # - - - - - - update  - - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def update(self):
-        #self.cycleTime = 5000
-        #self.startTime = self.getTimeInMilliSecs()
-        #while self.startTime + self.cycleTime > self.getTimeInMilliSecs():
-        
-        self.resetPWM()
+        #self.resetPWM()
+
         #self.bitBangTest()
         #self.hardwarePWMtest() 
+
+
+        self.waveChangeTest()
        
+        self.r2d2()
+
         self.chainWaveTest()
 
-        self.waveTest()
+        time.sleep(1)
 
+        self.randomWave()
+        
+        time.sleep(1)
+
+        while True:
+            self.randomChainWaveTest()
+
+        #self.waveTest()
 
         #while True:
         #    self.updatePWM()
         #    time.sleep(0.02)
 
-        #self.testing1()
         #self.randomizedSound()
-        #self.resetPWM()
 
     # - - - - - - - - - - - - - - - - - -
     # - - - get time in Millisecs - - - - 
@@ -259,6 +358,8 @@ class BitSoundGenerator:
     # - - - - - - reset PWM - - - - - - - 
     # - - - - - - - - - - - - - - - - - -
     def resetPWM(self):
+        self.pi.wave_clear() # clear any existing waveforms
+        self.pi.wave_tx_stop() # stop waveform
         for pin in self.pinList:
             self.pi.set_PWM_frequency(pin, 1000)
             self.pi.set_PWM_range(pin, 200)
