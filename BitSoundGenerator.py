@@ -205,18 +205,25 @@ class BitSoundGenerator:
         nmbrOfWaves = 5
         wave=[]
         waveId = [0]*nmbrOfWaves
-        
+        baseFreq = 500 
        
         for nmbr in range(nmbrOfWaves):
+            alterFreq = random.randint(0,1)
+            freqVariation = random.randint(0,1000)
             signVal = random.randint(-2,2)
-            for i in range(random.randint(1, 200)):
-                #                         ON     OFF   DELAY (usec)
-                wave.append(pigpio.pulse(1<<G1, NONE,  500 + i*signVal))
-                wave.append(pigpio.pulse(NONE, 1<<G1,  500 + i*signVal))
+            for i in range(random.randint(1, 300)):
+                if alterFreq:
+                    #                         ON     OFF   DELAY (usec)
+                    wave.append(pigpio.pulse(1<<G1, NONE,  freqVariation + baseFreq + i*signVal))
+                    wave.append(pigpio.pulse(NONE, 1<<G1,  freqVariation + baseFreq + i*signVal))
+                else:
+                    #                         ON     OFF   DELAY (usec)
+                    wave.append(pigpio.pulse(1<<G1, NONE,  freqVariation + baseFreq))
+                    wave.append(pigpio.pulse(NONE, 1<<G1,  freqVariation + baseFreq))
             self.pi.wave_add_generic(wave)
             waveId[nmbr] = self.pi.wave_create()
         
-        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 4, 0])
+        self.pi.wave_chain([255, 0, waveId[0], waveId[1], waveId[3], 255, 1, 2, 0])
 
         while self.pi.wave_tx_busy():
             time.sleep(0.1);
